@@ -156,12 +156,12 @@ export default function FretboardTrainer() {
                   className="w-16 px-2 py-1 border rounded"
                   value={startFret}
                   min={0}
-                  max={24}
+                  max={22}
                   onChange={(e) => {
                     const raw = Number(e.target.value) || 0;
-                    const v = Math.max(0, Math.min(24, raw));
+                    const v = Math.max(0, Math.min(22, raw));
                     setStartFret(v);
-                    setMaxFrets((prev) => Math.max(v, Math.min(24, prev)));
+                    setMaxFrets((prev) => Math.max(v, Math.min(22, prev)));
                   }}
                 />
               </span>
@@ -172,10 +172,10 @@ export default function FretboardTrainer() {
                   className="w-16 px-2 py-1 border rounded"
                   value={maxFrets}
                   min={0}
-                  max={24}
+                  max={22}
                   onChange={(e) => {
                     const raw = Number(e.target.value) || 12;
-                    const v = Math.max(0, Math.min(24, raw));
+                    const v = Math.max(0, Math.min(22, raw));
                     setMaxFrets(Math.max(startFret, v));
                   }}
                 />
@@ -284,25 +284,16 @@ export default function FretboardTrainer() {
                   setMaxFrets(12);
                 }}
               >
-                0–12
+                0–12 프렛
               </button>
               <button
                 className="px-2 py-1 rounded bg-slate-100"
                 onClick={() => {
-                  setStartFret(5);
-                  setMaxFrets(9);
+                  setStartFret(0);
+                  setMaxFrets(22);
                 }}
               >
-                5–9
-              </button>
-              <button
-                className="px-2 py-1 rounded bg-slate-100"
-                onClick={() => {
-                  setStartFret(12);
-                  setMaxFrets(17);
-                }}
-              >
-                12–17
+                0–22 프렛
               </button>
             </span>
           </Chip>

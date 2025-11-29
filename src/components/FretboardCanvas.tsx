@@ -94,6 +94,7 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
   /**
    * 기타 줄(strings) 그리기
    * 각 줄의 Y 위치를 계산하고, 줄의 두께를 위에서 아래로 점진적으로 두껍게 그립니다.
+   * 실제 기타처럼 1번 줄 위와 6번 줄 아래에 여백을 둡니다.
    * @returns 각 줄의 Y 좌표 배열
    */
   const drawStrings = (
@@ -107,9 +108,15 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
     const rows = stringsCount - 1;
     const stringYs: number[] = [];
 
+    // 실제 기타처럼 줄 위아래에 여백 추가
+    const stringPaddingTop = 12; // 1번 줄 위 여백
+    const stringPaddingBottom = 12; // 6번 줄 아래 여백
+    const stringAreaHeight = boardH - stringPaddingTop - stringPaddingBottom;
+    const stringAreaStart = boardY + stringPaddingTop;
+
     for (let i = 0; i < stringsCount; i++) {
-      // 각 줄의 Y 위치 계산 (균등하게 분배)
-      const y = boardY + (i * boardH) / rows;
+      // 각 줄의 Y 위치 계산 (여백을 고려하여 균등하게 분배)
+      const y = stringAreaStart + (i * stringAreaHeight) / rows;
       stringYs.push(y);
 
       // 줄의 두께: 위쪽 줄은 얇고, 아래쪽 줄은 두껍게 (실제 기타처럼)
