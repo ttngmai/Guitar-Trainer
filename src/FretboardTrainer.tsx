@@ -105,15 +105,15 @@ export default function FretboardTrainer() {
         setTuning([...STD_TUNING_PC]);
         setTuningLabels([...STD_TUNING_LABELS]);
         break;
-      case 'Drop D': // DADGBE
-        setTuning([2, 9, 2, 7, 11, 4]);
-        setTuningLabels(['D', 'A', 'D', 'G', 'B', 'E']);
+      case 'Drop D': // EADGBE → E B G D A D (1→6)
+        setTuning([4, 11, 7, 2, 9, 2]);
+        setTuningLabels(['E', 'B', 'G', 'D', 'A', 'D']);
         break;
-      case 'Open G': // D G D G B D → pitch classes [2,7,2,7,11,2]
+      case 'Open G': // D G D G B D (1→6) → pitch classes [2,7,2,7,11,2]
         setTuning([2, 7, 2, 7, 11, 2]);
         setTuningLabels(['D', 'G', 'D', 'G', 'B', 'D']);
         break;
-      case 'Open D': // D A D F# A D → [2,9,2,6,9,2]
+      case 'Open D': // D A D F# A D (1→6) → [2,9,2,6,9,2]
         setTuning([2, 9, 2, 6, 9, 2]);
         setTuningLabels(['D', 'A', 'D', 'F#', 'A', 'D']);
         break;
@@ -198,22 +198,7 @@ export default function FretboardTrainer() {
 
         {mode === 'explore' ? (
           <div className="flex flex-wrap items-center gap-3">
-            <Chip className="bg-white">
-              목표 음
-              <select
-                className="ml-2 px-2 py-1 border rounded"
-                value={targetNote}
-                onChange={(e) => setTargetNote(e.target.value)}
-              >
-                {NOTES.map((n) => (
-                  <option key={n}>{n}</option>
-                ))}
-              </select>
-            </Chip>
-            <Chip className="bg-white">
-              범례
-              <span className="ml-2">🎯 = 목표</span>
-            </Chip>
+            {/* 탐색 모드 UI는 여기에 추가 예정 */}
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-3">
@@ -263,13 +248,12 @@ export default function FretboardTrainer() {
             startFret={startFret}
             visibleFrets={visibleFrets}
             stringsCount={6}
+            mode={mode}
+            quizTarget={quizTarget}
+            tuning={tuning}
+            clicked={clicked}
+            onCellClick={toggleClick}
           />
-          <div className="mt-4 text-xs text-slate-500">
-            <p>
-              공식: p ≡ sᵢ + f (mod 12). 상단은 프렛 번호, 좌측은 줄 번호(1→6),
-              하단은 포지션 마크를 캔버스로 렌더링합니다.
-            </p>
-          </div>
         </div>
 
         {/* Footer controls */}

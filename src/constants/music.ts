@@ -19,9 +19,10 @@ export const NOTE_TO_INDEX: Record<string, number> = Object.fromEntries(
   NOTES.map((n, i) => [n, i])
 ) as Record<string, number>;
 
-// Standard tuning (6→1): E2 A2 D3 G3 B3 E4 → pitch classes (C=0)
+// Standard tuning (1→6): E4 B3 G3 D3 A2 E2 → pitch classes (C=0)
 // Using pitch classes only; absolute octaves are not required for this trainer
-export const STD_TUNING_PC = [4, 9, 2, 7, 11, 4];
-export const STD_TUNING_LABELS = ['E', 'A', 'D', 'G', 'B', 'E']; // 6→1
+// 배열 인덱스 0 = 1번줄(상단), 인덱스 5 = 6번줄(하단)
+export const STD_TUNING_PC = [4, 11, 7, 2, 9, 4]; // E, B, G, D, A, E
+export const STD_TUNING_LABELS = ['E', 'B', 'G', 'D', 'A', 'E']; // 1→6
 
 
