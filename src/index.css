@@ -2,7 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+select {
+  color: #475569;
+}
 
+select option {
+  background: rgba(255, 255, 255, 0.95);
+  color: #475569;
+  padding: 8px;
+}
 
+* {
+  scroll-behavior: smooth;
+}
 
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
