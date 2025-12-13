@@ -10,6 +10,8 @@ import {
 } from './constants/music';
 import { getTuningPreset } from './constants/tunings';
 import { getDefaultNoteColors } from './constants/noteColors';
+import { getLiquidGlassButtonStyle, getLiquidGlassSelectStyle, getLiquidGlassContainerStyle } from './constants/styles';
+import { FRETBOARD } from './constants/fretboard';
 import { mod } from './utils/math';
 
 export default function FretboardTrainer() {
@@ -159,36 +161,14 @@ export default function FretboardTrainer() {
               모드:
               <span className="ml-2 inline-flex gap-1">
                 <button
-                  style={{
-                    background: mode === 'explore'
-                      ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))'
-                      : 'linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(241, 245, 249, 0.4))',
-                    backdropFilter: 'blur(10px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-                    color: mode === 'explore' ? '#ffffff' : '#475569',
-                    boxShadow: mode === 'explore'
-                      ? '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                      : '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                  }}
+                  style={getLiquidGlassButtonStyle(mode === 'explore')}
                   className="px-2 py-0.5 rounded-lg text-xs font-medium transition-all hover:opacity-90"
                   onClick={() => setMode('explore')}
                 >
                   탐색
                 </button>
                 <button
-                  style={{
-                    background: mode === 'quiz'
-                      ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))'
-                      : 'linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(241, 245, 249, 0.4))',
-                    backdropFilter: 'blur(10px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-                    color: mode === 'quiz' ? '#ffffff' : '#475569',
-                    boxShadow: mode === 'quiz'
-                      ? '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                      : '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                  }}
+                  style={getLiquidGlassButtonStyle(mode === 'quiz')}
                   className="px-2 py-0.5 rounded-lg text-xs font-medium transition-all hover:opacity-90"
                   onClick={startQuiz}
                 >
@@ -201,22 +181,21 @@ export default function FretboardTrainer() {
               <span className="ml-2">
                 <label className="mr-1 text-slate-600 text-xs">시작</label>
                 <select
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.5))',
-                    backdropFilter: 'blur(10px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-                    border: '1px solid rgba(255, 255, 255, 0.4)',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
-                  }}
+                  style={getLiquidGlassSelectStyle()}
                   className="px-2 py-1 rounded-lg text-xs"
                   value={startFret}
                   onChange={(e) => {
                     const v = Number(e.target.value);
                     setStartFret(v);
-                    setMaxFrets((prev) => Math.max(v, Math.min(22, prev)));
+                    setMaxFrets((prev) =>
+                      Math.max(v, Math.min(FRETBOARD.MAX_FRETS, prev))
+                    );
                   }}
                 >
-                  {Array.from({ length: 23 }, (_, i) => i).map((fret) => (
+                  {Array.from(
+                    { length: FRETBOARD.MAX_FRETS + 1 },
+                    (_, i) => i
+                  ).map((fret) => (
                     <option key={fret} value={fret}>
                       {fret}
                     </option>
@@ -226,13 +205,7 @@ export default function FretboardTrainer() {
               <span className="ml-2">
                 <label className="mr-1 text-slate-600 text-xs">끝</label>
                 <select
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.5))',
-                    backdropFilter: 'blur(10px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-                    border: '1px solid rgba(255, 255, 255, 0.4)',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
-                  }}
+                  style={getLiquidGlassSelectStyle()}
                   className="px-2 py-1 rounded-lg text-xs"
                   value={maxFrets}
                   onChange={(e) => {
@@ -240,7 +213,10 @@ export default function FretboardTrainer() {
                     setMaxFrets(Math.max(startFret, v));
                   }}
                 >
-                  {Array.from({ length: 23 }, (_, i) => i)
+                  {Array.from(
+                    { length: FRETBOARD.MAX_FRETS + 1 },
+                    (_, i) => i
+                  )
                     .filter((fret) => fret >= startFret)
                     .map((fret) => (
                       <option key={fret} value={fret}>
@@ -253,13 +229,7 @@ export default function FretboardTrainer() {
             <Chip>
               조율
               <select
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.5))',
-                  backdropFilter: 'blur(10px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-                  border: '1px solid rgba(255, 255, 255, 0.4)',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
-                }}
+                style={getLiquidGlassSelectStyle()}
                 className="ml-2 px-2 py-1 rounded-lg text-xs"
                 onChange={(e) => applyPreset(e.target.value)}
               >
@@ -277,14 +247,7 @@ export default function FretboardTrainer() {
             <Chip>
               퀴즈 목표: <strong className="ml-2">{quizTarget}</strong>
               <button
-                style={{
-                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))',
-                  backdropFilter: 'blur(10px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-                  color: '#ffffff',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                }}
+                style={getLiquidGlassButtonStyle(true)}
                 className="ml-3 px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-90"
                 onClick={() =>
                   setQuizTarget(NOTES[(NOTE_TO_INDEX[quizTarget] + 1) % 12])
@@ -302,42 +265,21 @@ export default function FretboardTrainer() {
               찾음 {clicked.filter((k) => quizCorrectSet.has(k)).length} /{' '}
               {quizCorrectSet.size}
               <button
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(241, 245, 249, 0.4))',
-                  backdropFilter: 'blur(10px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-                  color: '#475569',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                }}
+                style={getLiquidGlassButtonStyle(false)}
                 className="ml-3 px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-90"
                 onClick={() => setClicked([])}
               >
                 클릭 초기화
               </button>
               <button
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(241, 245, 249, 0.4))',
-                  backdropFilter: 'blur(10px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-                  color: '#475569',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                }}
+                style={getLiquidGlassButtonStyle(false)}
                 className="ml-2 px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-90"
                 onClick={startQuiz}
               >
                 새 퀴즈
               </button>
               <button
-                style={{
-                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8))',
-                  backdropFilter: 'blur(10px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-                  color: '#ffffff',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                }}
+                style={getLiquidGlassButtonStyle(true)}
                 className="ml-2 px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-90"
                 onClick={stopQuiz}
               >
@@ -348,13 +290,7 @@ export default function FretboardTrainer() {
         )}
 
         <div
-          style={{
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.2))',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-          }}
+          style={getLiquidGlassContainerStyle()}
           className="rounded-2xl p-4"
         >
           <FretboardCanvas
@@ -375,13 +311,7 @@ export default function FretboardTrainer() {
 
         {mode === 'explore' && (
           <div
-            style={{
-              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.2))',
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-            }}
+            style={getLiquidGlassContainerStyle()}
             className="rounded-2xl p-4"
           >
             <div className="mb-3">
@@ -404,14 +334,7 @@ export default function FretboardTrainer() {
             빠른 범위
             <span className="ml-2 inline-flex gap-1">
               <button
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(241, 245, 249, 0.4))',
-                  backdropFilter: 'blur(10px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-                  color: '#475569',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                }}
+                style={getLiquidGlassButtonStyle(false)}
                 className="px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-90"
                 onClick={() => {
                   setStartFret(0);
@@ -421,14 +344,7 @@ export default function FretboardTrainer() {
                 0–12 프렛
               </button>
               <button
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(241, 245, 249, 0.4))',
-                  backdropFilter: 'blur(10px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-                  color: '#475569',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                }}
+                style={getLiquidGlassButtonStyle(false)}
                 className="px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-90"
                 onClick={() => {
                   setStartFret(0);

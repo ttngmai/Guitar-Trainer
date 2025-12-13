@@ -4,10 +4,12 @@ import { FaPalette } from 'react-icons/fa';
 import {
   NOTES,
   NOTE_FLAT_NAMES,
-  NOTES_WITH_ACCIDENTALS,
   NOTE_DEGREE_NAMES,
   NOTE_DEGREE_FLAT_NAMES,
+  isNoteWithAccidental,
 } from '../constants/music';
+import { getLiquidGlassButtonStyle } from '../constants/styles';
+import { getTextColor } from '../utils/color';
 
 type NoteToggleProps = {
   selectedNotes: Set<string>;
@@ -61,18 +63,9 @@ export const NoteToggle: React.FC<NoteToggleProps> = ({
     setOpenColorPicker(openColorPicker === note ? null : note);
   };
 
-  const getTextColor = (bgColor: string): string => {
-    const hex = bgColor.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness > 128 ? '#000000' : '#ffffff';
-  };
-
   const getDisplayName = (note: string): string => {
     if (notationMode === 'degree') {
-      if (NOTES_WITH_ACCIDENTALS.includes(note as any)) {
+      if (isNoteWithAccidental(note)) {
         const notation = noteNotations[note] || 'sharp';
         return notation === 'flat'
           ? NOTE_DEGREE_FLAT_NAMES[note] || NOTE_DEGREE_NAMES[note]
@@ -81,7 +74,7 @@ export const NoteToggle: React.FC<NoteToggleProps> = ({
         return NOTE_DEGREE_NAMES[note] || note;
       }
     } else {
-      if (NOTES_WITH_ACCIDENTALS.includes(note as any)) {
+      if (isNoteWithAccidental(note)) {
         const notation = noteNotations[note] || 'sharp';
         if (notation === 'flat') {
           return NOTE_FLAT_NAMES[note] || note;
@@ -104,16 +97,7 @@ export const NoteToggle: React.FC<NoteToggleProps> = ({
               notationMode === 'letter' ? 'degree' : 'letter'
             )
           }
-          style={{
-            background:
-              'linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(241, 245, 249, 0.4))',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            color: '#475569',
-            boxShadow:
-              '0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-          }}
+          style={getLiquidGlassButtonStyle(false)}
           className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:opacity-90"
           title={`현재: ${
             notationMode === 'letter' ? '문자' : '도수'
@@ -123,16 +107,7 @@ export const NoteToggle: React.FC<NoteToggleProps> = ({
         </button>
         <button
           onClick={onToggleAllNotations}
-          style={{
-            background:
-              'linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(241, 245, 249, 0.4))',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            color: '#475569',
-            boxShadow:
-              '0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-          }}
+          style={getLiquidGlassButtonStyle(false)}
           className="px-3 py-1.5 rounded-lg text-slate-700 text-sm font-medium transition-all hover:opacity-90"
         >
           #/♭

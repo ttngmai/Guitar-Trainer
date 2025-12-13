@@ -3,10 +3,12 @@ import {
   NOTES,
   NOTE_TO_INDEX,
   NOTE_FLAT_NAMES,
-  NOTES_WITH_ACCIDENTALS,
   NOTE_DEGREE_NAMES,
   NOTE_DEGREE_FLAT_NAMES,
+  isNoteWithAccidental,
 } from '../constants/music';
+import { FRETBOARD } from '../constants/fretboard';
+import { getTextColor } from '../utils/color';
 import { mod } from '../utils/math';
 
 type FretboardCanvasProps = {
@@ -45,6 +47,143 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
     fret: number;
   } | null>(null);
 
+  const getNoteDisplayName = (
+    noteName: string,
+    notationMode: 'letter' | 'degree',
+    noteNotations?: Record<string, 'sharp' | 'flat'>
+  ): string => {
+    if (notationMode === 'degree') {
+      if (noteNotations && isNoteWithAccidental(noteName)) {
+        const notation = noteNotations[noteName] || 'sharp';
+        return (
+          (notation === 'flat'
+            ? NOTE_DEGREE_FLAT_NAMES[noteName] || NOTE_DEGREE_NAMES[noteName]
+            : NOTE_DEGREE_NAMES[noteName]) || noteName
+        );
+      } else {
+        return NOTE_DEGREE_NAMES[noteName] || noteName;
+      }
+    } else {
+      if (noteNotations && isNoteWithAccidental(noteName)) {
+        const notation = noteNotations[noteName] || 'sharp';
+        if (notation === 'flat') {
+          return NOTE_FLAT_NAMES[noteName] || noteName;
+        }
+      }
+      return noteName;
+    }
+  };
+
+  const getNoteXPosition = (
+    fretIndex: number,
+    visibleFrets: number[],
+    fretXs: number[],
+    boardX: number,
+    nutWidth: number
+  ): number => {
+    if (fretIndex === 0 && visibleFrets[0] === 0) {
+      return boardX + nutWidth / 2;
+    } else if (fretIndex === 1 && visibleFrets[0] === 0) {
+      return boardX + nutWidth + (fretXs[1] - nutWidth) / 2;
+    } else if (fretIndex === 0) {
+      return boardX + fretXs[0] / 2;
+    } else {
+      return boardX + (fretXs[fretIndex - 1] + fretXs[fretIndex]) / 2;
+    }
+  };
+
+  const drawLiquidGlassCircle = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    noteColor: string,
+    textColor: string,
+    displayText: string,
+    borderColor?: string,
+    shadowColors?: { light: string; medium: string; dark: string },
+    mainColors?: { light: string; medium: string; dark: string }
+  ) => {
+    const radius = FRETBOARD.NOTE_RADIUS;
+
+    const shadowGradient = ctx.createRadialGradient(x, y, 0, x, y, radius + 8);
+    if (shadowColors) {
+      shadowGradient.addColorStop(0, shadowColors.light);
+      shadowGradient.addColorStop(0.5, shadowColors.medium);
+      shadowGradient.addColorStop(1, shadowColors.dark);
+    } else {
+      shadowGradient.addColorStop(0, `${noteColor}40`);
+      shadowGradient.addColorStop(0.5, `${noteColor}20`);
+      shadowGradient.addColorStop(1, `${noteColor}00`);
+    }
+    ctx.beginPath();
+    ctx.arc(x, y, radius + 8, 0, Math.PI * 2);
+    ctx.fillStyle = shadowGradient;
+    ctx.fill();
+
+    const mainGradient = ctx.createRadialGradient(
+      x - radius * 0.3,
+      y - radius * 0.3,
+      0,
+      x,
+      y,
+      radius
+    );
+    if (mainColors) {
+      mainGradient.addColorStop(0, mainColors.light);
+      mainGradient.addColorStop(0.5, mainColors.medium);
+      mainGradient.addColorStop(1, mainColors.dark);
+    } else {
+      mainGradient.addColorStop(0, `${noteColor}CC`);
+      mainGradient.addColorStop(0.5, `${noteColor}99`);
+      mainGradient.addColorStop(1, `${noteColor}66`);
+    }
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = mainGradient;
+    ctx.fill();
+
+    const highlightGradient = ctx.createRadialGradient(
+      x - radius * 0.4,
+      y - radius * 0.4,
+      0,
+      x - radius * 0.4,
+      y - radius * 0.4,
+      radius * 0.6
+    );
+    highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+    highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.beginPath();
+    ctx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.5, 0, Math.PI * 2);
+    ctx.fillStyle = highlightGradient;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = borderColor || `${noteColor}80`;
+    ctx.lineWidth = borderColor ? 1.5 : 1;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius - 1, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 1;
+    ctx.fillStyle = textColor;
+    ctx.font =
+      'bold 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(displayText, x, y);
+    ctx.restore();
+  };
+
   const getLayout = React.useCallback((): {
     boardX: number;
     boardY: number;
@@ -54,13 +193,13 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return null;
 
-    const width = Math.max(canvas.clientWidth, 720);
-    const height = 260;
+    const width = Math.max(canvas.clientWidth, FRETBOARD.CANVAS_MIN_WIDTH);
+    const height = FRETBOARD.CANVAS_HEIGHT;
 
-    const marginLeft = 48;
-    const marginRight = 16;
-    const marginTop = 28;
-    const marginBottom = 32;
+    const marginLeft = FRETBOARD.MARGIN.LEFT;
+    const marginRight = FRETBOARD.MARGIN.RIGHT;
+    const marginTop = FRETBOARD.MARGIN.TOP;
+    const marginBottom = FRETBOARD.MARGIN.BOTTOM;
     const boardX = marginLeft;
     const boardY = marginTop;
     const boardW = width - marginLeft - marginRight;
@@ -83,8 +222,8 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
     if (!container || !canvas) return null;
 
     const dpr = window.devicePixelRatio || 1;
-    const width = Math.max(container.clientWidth, 720);
-    const height = 260;
+    const width = Math.max(container.clientWidth, FRETBOARD.CANVAS_MIN_WIDTH);
+    const height = FRETBOARD.CANVAS_HEIGHT;
 
     canvas.width = Math.floor(width * dpr);
     canvas.height = Math.floor(height * dpr);
@@ -95,10 +234,10 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
     if (!ctx) return null;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const marginLeft = 48;
-    const marginRight = 16;
-    const marginTop = 28;
-    const marginBottom = 32;
+    const marginLeft = FRETBOARD.MARGIN.LEFT;
+    const marginRight = FRETBOARD.MARGIN.RIGHT;
+    const marginTop = FRETBOARD.MARGIN.TOP;
+    const marginBottom = FRETBOARD.MARGIN.BOTTOM;
     const boardX = marginLeft;
     const boardY = marginTop;
     const boardW = width - marginLeft - marginRight;
@@ -139,8 +278,8 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
     const rows = stringsCount - 1;
     const stringYs: number[] = [];
 
-    const stringPaddingTop = 12;
-    const stringPaddingBottom = 12;
+    const stringPaddingTop = FRETBOARD.STRING_PADDING.TOP;
+    const stringPaddingBottom = FRETBOARD.STRING_PADDING.BOTTOM;
     const stringAreaHeight = boardH - stringPaddingTop - stringPaddingBottom;
     const stringAreaStart = boardY + stringPaddingTop;
 
@@ -166,7 +305,10 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
     for (let i = 0; i < stringsCount; i++) {
       const y = stringYs[i];
 
-      const thickness = 0.8 + (i / (stringsCount - 1)) * 1.4;
+      const thickness =
+        FRETBOARD.STRING_THICKNESS.MIN +
+        (i / (stringsCount - 1)) *
+          (FRETBOARD.STRING_THICKNESS.MAX - FRETBOARD.STRING_THICKNESS.MIN);
 
       ctx.beginPath();
       ctx.moveTo(boardX, y);
@@ -188,7 +330,7 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
     const fretXs: number[] = [];
     const endFret = visibleFrets[visibleFrets.length - 1];
     const hasNut = startFret === 0 && visibleFrets.includes(0);
-    const nutWidth = hasNut ? 32 : 0;
+    const nutWidth = hasNut ? FRETBOARD.NUT_WIDTH : 0;
     const L = boardW - nutWidth;
 
     const absPos = (n: number) => L - L / Math.pow(2, n / 12);
@@ -439,122 +581,25 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
 
         if (!selectedNoteIndices.has(notePC)) continue;
 
-        let x: number;
-        if (i === 0 && visibleFrets[0] === 0) {
-          x = boardX + nutWidth / 2;
-        } else if (i === 1 && visibleFrets[0] === 0) {
-          x = boardX + nutWidth + (fretXs[1] - nutWidth) / 2;
-        } else if (i === 0) {
-          x = boardX + fretXs[0] / 2;
-        } else {
-          x = boardX + (fretXs[i - 1] + fretXs[i]) / 2;
-        }
-
+        const x = getNoteXPosition(i, visibleFrets, fretXs, boardX, nutWidth);
         const y = stringYs[si];
         const noteName = NOTES[notePC];
         const noteColor = noteColors?.[noteName] || '#94a3b8';
+        const displayNoteName = getNoteDisplayName(
+          noteName,
+          notationMode,
+          noteNotations
+        );
 
-        let displayNoteName: string = noteName;
-        if (notationMode === 'degree') {
-          if (
-            noteNotations &&
-            NOTES_WITH_ACCIDENTALS.includes(noteName as any)
-          ) {
-            const notation = noteNotations[noteName] || 'sharp';
-            displayNoteName =
-              (notation === 'flat'
-                ? NOTE_DEGREE_FLAT_NAMES[noteName] ||
-                  NOTE_DEGREE_NAMES[noteName]
-                : NOTE_DEGREE_NAMES[noteName]) || noteName;
-          } else {
-            displayNoteName = NOTE_DEGREE_NAMES[noteName] || noteName;
-          }
-        } else {
-          if (
-            noteNotations &&
-            NOTES_WITH_ACCIDENTALS.includes(noteName as any)
-          ) {
-            const notation = noteNotations[noteName] || 'sharp';
-            if (notation === 'flat') {
-              displayNoteName = NOTE_FLAT_NAMES[noteName] || noteName;
-            }
-          }
-        }
-
-        const hex = noteColor.replace('#', '');
-        const r = parseInt(hex.substring(0, 2), 16);
-        const g = parseInt(hex.substring(2, 4), 16);
-        const b = parseInt(hex.substring(4, 6), 16);
-        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-        const textColor = brightness > 128 ? '#000000' : '#ffffff';
-
-        const radius = 14;
-        
-        const shadowGradient = ctx.createRadialGradient(x, y, 0, x, y, radius + 8);
-        shadowGradient.addColorStop(0, `${noteColor}40`);
-        shadowGradient.addColorStop(0.5, `${noteColor}20`);
-        shadowGradient.addColorStop(1, `${noteColor}00`);
-        ctx.beginPath();
-        ctx.arc(x, y, radius + 8, 0, Math.PI * 2);
-        ctx.fillStyle = shadowGradient;
-        ctx.fill();
-
-        const mainGradient = ctx.createRadialGradient(
-          x - radius * 0.3,
-          y - radius * 0.3,
-          0,
+        const textColor = getTextColor(noteColor);
+        drawLiquidGlassCircle(
+          ctx,
           x,
           y,
-          radius
+          noteColor,
+          textColor,
+          displayNoteName
         );
-        mainGradient.addColorStop(0, `${noteColor}CC`);
-        mainGradient.addColorStop(0.5, `${noteColor}99`);
-        mainGradient.addColorStop(1, `${noteColor}66`);
-        
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = mainGradient;
-        ctx.fill();
-
-        const highlightGradient = ctx.createRadialGradient(
-          x - radius * 0.4,
-          y - radius * 0.4,
-          0,
-          x - radius * 0.4,
-          y - radius * 0.4,
-          radius * 0.6
-        );
-        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-        highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        ctx.beginPath();
-        ctx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.5, 0, Math.PI * 2);
-        ctx.fillStyle = highlightGradient;
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = `${noteColor}80`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(x, y, radius - 1, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
-
-        ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = 2;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 1;
-        ctx.fillStyle = textColor;
-        ctx.font =
-          'bold 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(displayNoteName, x, y);
-        ctx.restore();
       }
     }
   };
@@ -583,105 +628,49 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
       const fretIndex = visibleFrets.indexOf(f);
       if (fretIndex === -1) return;
 
-      let x: number;
-      if (fretIndex === 0 && visibleFrets[0] === 0) {
-        x = boardX + nutWidth / 2;
-      } else if (fretIndex === 1 && visibleFrets[0] === 0) {
-        x = boardX + nutWidth + (fretXs[1] - nutWidth) / 2;
-      } else if (fretIndex === 0) {
-        x = boardX + fretXs[0] / 2;
-      } else {
-        x = boardX + (fretXs[fretIndex - 1] + fretXs[fretIndex]) / 2;
-      }
-
+      const x = getNoteXPosition(
+        fretIndex,
+        visibleFrets,
+        fretXs,
+        boardX,
+        nutWidth
+      );
       const y = stringYs[si];
 
       const notePC = mod(tuning[si] + f, 12);
       const noteName = NOTES[notePC];
       const isCorrect = notePC === targetNoteIndex;
+      const displayNoteName = getNoteDisplayName(
+        noteName,
+        notationMode,
+        noteNotations
+      );
 
-      let displayNoteName: string = noteName;
-      if (notationMode === 'degree') {
-        if (noteNotations && NOTES_WITH_ACCIDENTALS.includes(noteName as any)) {
-          const notation = noteNotations[noteName] || 'sharp';
-          displayNoteName =
-            (notation === 'flat'
-              ? NOTE_DEGREE_FLAT_NAMES[noteName] || NOTE_DEGREE_NAMES[noteName]
-              : NOTE_DEGREE_NAMES[noteName]) || noteName;
-        } else {
-          displayNoteName = NOTE_DEGREE_NAMES[noteName] || noteName;
-        }
-      }
-
-      const radius = 14;
-      const noteColor = isCorrect ? '#10b981' : '#ef4444';
-      const borderColor = isCorrect ? '#059669' : '#dc2626';
-      
-      const shadowGradient = ctx.createRadialGradient(x, y, 0, x, y, radius + 8);
-      shadowGradient.addColorStop(0, isCorrect ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)');
-      shadowGradient.addColorStop(0.5, isCorrect ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)');
-      shadowGradient.addColorStop(1, isCorrect ? 'rgba(16, 185, 129, 0)' : 'rgba(239, 68, 68, 0)');
-      ctx.beginPath();
-      ctx.arc(x, y, radius + 8, 0, Math.PI * 2);
-      ctx.fillStyle = shadowGradient;
-      ctx.fill();
-
-      const mainGradient = ctx.createRadialGradient(
-        x - radius * 0.3,
-        y - radius * 0.3,
-        0,
+      const baseColor = isCorrect
+        ? 'rgba(16, 185, 129,'
+        : 'rgba(239, 68, 68,';
+      const borderColor = isCorrect
+        ? 'rgba(5, 150, 105, 0.8)'
+        : 'rgba(220, 38, 38, 0.8)';
+      drawLiquidGlassCircle(
+        ctx,
         x,
         y,
-        radius
+        baseColor,
+        '#ffffff',
+        displayNoteName,
+        borderColor,
+        {
+          light: `${baseColor}0.4)`,
+          medium: `${baseColor}0.2)`,
+          dark: `${baseColor}0)`,
+        },
+        {
+          light: `${baseColor}0.9)`,
+          medium: `${baseColor}0.7)`,
+          dark: `${baseColor}0.5)`,
+        }
       );
-      mainGradient.addColorStop(0, isCorrect ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)');
-      mainGradient.addColorStop(0.5, isCorrect ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)');
-      mainGradient.addColorStop(1, isCorrect ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)');
-      
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = mainGradient;
-      ctx.fill();
-
-      const highlightGradient = ctx.createRadialGradient(
-        x - radius * 0.4,
-        y - radius * 0.4,
-        0,
-        x - radius * 0.4,
-        y - radius * 0.4,
-        radius * 0.6
-      );
-      highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-      highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      ctx.beginPath();
-      ctx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.5, 0, Math.PI * 2);
-      ctx.fillStyle = highlightGradient;
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = borderColor + 'CC';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(x, y, radius - 1, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-
-      ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-      ctx.shadowBlur = 2;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 1;
-      ctx.fillStyle = '#ffffff';
-      ctx.font =
-        'bold 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(displayNoteName, x, y);
-      ctx.restore();
     });
   };
 

@@ -27,6 +27,12 @@ export const NOTE_FLAT_NAMES: Record<string, string> = {
 
 export const NOTES_WITH_ACCIDENTALS = ['C#', 'D#', 'F#', 'G#', 'A#'] as const;
 
+export type NoteWithAccidental = typeof NOTES_WITH_ACCIDENTALS[number];
+
+export const isNoteWithAccidental = (note: string): note is NoteWithAccidental => {
+  return NOTES_WITH_ACCIDENTALS.includes(note as NoteWithAccidental);
+};
+
 export const NOTE_DEGREE_NAMES: Record<string, string> = {
   C: '1',
   'C#': '1#',
