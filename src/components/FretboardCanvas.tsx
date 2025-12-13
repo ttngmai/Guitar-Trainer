@@ -297,8 +297,7 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
     boardY: number,
     boardW: number,
     boardH: number,
-    stringsCount: number,
-    nutWidth: number = 0
+    stringsCount: number
   ): number[] => {
     const stringYs = calculateStringYs(boardY, boardH, stringsCount);
 
@@ -329,32 +328,37 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
   ): { fretXs: number[]; nutWidth: number } => {
     const fretXs: number[] = [];
     const endFret = visibleFrets[visibleFrets.length - 1];
+
     const hasNut = startFret === 0 && visibleFrets.includes(0);
     const nutWidth = hasNut ? FRETBOARD.NUT_WIDTH : 0;
+
+    // 실제 스케일 길이(너트가 있으면 그만큼 제외)
     const L = boardW - nutWidth;
 
-    const absPos = (n: number) => L - L / Math.pow(2, n / 12);
+    // "절대 프렛 f"의 너트 기준 위치(0프렛=0)
+    const abs = (f: number) => (f <= 0 ? 0 : L - L / Math.pow(2, f / 12));
 
-    const xStartAbs = absPos(startFret);
-    const xEndAbs = absPos(endFret);
-    const denom = xEndAbs - xStartAbs || 1;
-    const span = Math.max(1, endFret - startFret);
+    // 화면에 보여줄 왼쪽 기준
+    // startFret=0: nut(0)부터 시작
+    // startFret>0: (startFret-1)~startFret 구간을 첫 칸으로 포함하기 위해
+    //              startFret-1을 기준으로 자름
+    const leftFret = startFret > 0 ? startFret - 1 : 0;
 
-    const flatten = 0.35;
+    const leftAbs = abs(leftFret);
+    const rightAbs = abs(endFret); // 마지막 프렛 라인까지
+    const denom = rightAbs - leftAbs || 1;
 
     for (let i = 0; i < visibleFrets.length; i++) {
-      const fretNum = visibleFrets[i];
+      const f = visibleFrets[i];
 
-      if (fretNum === 0 && hasNut) {
+      if (f === 0 && hasNut) {
         fretXs.push(0);
-      } else {
-        const tNon = (absPos(fretNum) - xStartAbs) / denom;
-        const tLin = (fretNum - startFret) / span;
-        const t = (1 - flatten) * tNon + flatten * tLin;
-
-        const x = Math.min(1, Math.max(0, t)) * L + nutWidth;
-        fretXs.push(x);
+        continue;
       }
+
+      // 잘라낸(leftAbs) 기준으로 0~L로 선형 스케일
+      const x = ((abs(f) - leftAbs) / denom) * L + nutWidth;
+      fretXs.push(x);
     }
 
     return { fretXs, nutWidth };
@@ -442,12 +446,22 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
     boardY: number,
     boardH: number,
     visibleFrets: number[],
-    fretXs: number[]
+    fretXs: number[],
+    startFret: number
   ) => {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#64748b';
 
+    // 시작 프렛이 0이 아닐 때, 첫 프렛 번호도 표시
+    if (startFret > 0 && visibleFrets.length > 0 && fretXs.length > 0) {
+      const firstFretNumber = visibleFrets[0];
+      // 첫 프렛 영역의 중앙에 번호 표시
+      const firstFretX = boardX + fretXs[0] / 2;
+      ctx.fillText(String(firstFretNumber), firstFretX, boardY + boardH + 20);
+    }
+
+    // 나머지 프렛 번호 표시
     for (let i = 0; i < visibleFrets.length - 1; i++) {
       const nextFretNumber = visibleFrets[i + 1];
       const x = boardX + (fretXs[i] + fretXs[i + 1]) / 2;
@@ -555,8 +569,6 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
   const drawExploreNotes = (
     ctx: CanvasRenderingContext2D,
     boardX: number,
-    boardY: number,
-    boardH: number,
     stringYs: number[],
     visibleFrets: number[],
     fretXs: number[],
@@ -592,14 +604,7 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
         );
 
         const textColor = getTextColor(noteColor);
-        drawLiquidGlassCircle(
-          ctx,
-          x,
-          y,
-          noteColor,
-          textColor,
-          displayNoteName
-        );
+        drawLiquidGlassCircle(ctx, x, y, noteColor, textColor, displayNoteName);
       }
     }
   };
@@ -607,8 +612,6 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
   const drawQuizClicks = (
     ctx: CanvasRenderingContext2D,
     boardX: number,
-    boardY: number,
-    boardH: number,
     stringYs: number[],
     visibleFrets: number[],
     fretXs: number[],
@@ -646,9 +649,7 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
         noteNotations
       );
 
-      const baseColor = isCorrect
-        ? 'rgba(16, 185, 129,'
-        : 'rgba(239, 68, 68,';
+      const baseColor = isCorrect ? 'rgba(16, 185, 129,' : 'rgba(239, 68, 68,';
       const borderColor = isCorrect
         ? 'rgba(5, 150, 105, 0.8)'
         : 'rgba(220, 38, 38, 0.8)';
@@ -787,29 +788,27 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
       boardY,
       boardW,
       boardH,
-      stringsCount,
-      nutWidth
+      stringsCount
     );
 
     drawFrets(ctx, boardX, boardY, boardH, startFret, visibleFrets, fretXs);
 
     drawStringLabels(ctx, boardX, stringYs);
 
-    drawFretNumbers(ctx, boardX, boardY, boardH, visibleFrets, fretXs);
+    drawFretNumbers(
+      ctx,
+      boardX,
+      boardY,
+      boardH,
+      visibleFrets,
+      fretXs,
+      startFret
+    );
 
     drawInlays(ctx, boardX, boardY, boardH, visibleFrets, fretXs);
 
     if (mode === 'explore') {
-      drawExploreNotes(
-        ctx,
-        boardX,
-        boardY,
-        boardH,
-        stringYs,
-        visibleFrets,
-        fretXs,
-        nutWidth
-      );
+      drawExploreNotes(ctx, boardX, stringYs, visibleFrets, fretXs, nutWidth);
     }
 
     if (mode === 'quiz' && hoveredCell) {
@@ -826,16 +825,7 @@ const FretboardCanvas: React.FC<FretboardCanvasProps> = ({
       );
     }
 
-    drawQuizClicks(
-      ctx,
-      boardX,
-      boardY,
-      boardH,
-      stringYs,
-      visibleFrets,
-      fretXs,
-      nutWidth
-    );
+    drawQuizClicks(ctx, boardX, stringYs, visibleFrets, fretXs, nutWidth);
   }, [
     visibleFrets,
     stringsCount,
